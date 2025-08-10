@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sender - Secure File Share</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+    <div class="app w-full max-w-md p-8 bg-gray-800 shadow-xl rounded-2xl">
+        <div class="screen join-screen active text-center">
+            <div class="mb-6">
+                <h2 class="text-3xl font-extrabold text-blue-400 mb-2">Secure File Share</h2>
+                <p class="text-gray-400">Create a room and share the ID to begin.</p>
+            </div>
+            <div class="form">
+                <div class="form-input mb-4">
+                    <button id="sender-start-con-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-blue-700 transition duration-300 transform hover:scale-105">
+                        Create Room
+                    </button>
+                </div>
+                <div class="form-input" id="join-id">
+                    </div>
+            </div>
+        </div>
+        <div class="screen fs-screen hidden">
+            <div id="drop-zone" class="relative border-2 border-dashed border-gray-600 rounded-xl p-8 mb-6 text-center transition-colors duration-300 hover:border-blue-400">
+                <p class="text-gray-400">Drag & Drop files here or <span class="text-blue-400 font-bold">click to browse</span></p>
+                <input type="file" id="file-input" name="files" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" multiple>
+            </div>
+            
+            <div class="share-controls">
+                <div class="mb-4">
+                    <label for="file-dropdown" class="block text-sm font-medium text-gray-400 mb-2">Choose a file to share:</label>
+                    <select id="file-dropdown" class="mt-1 block w-full p-3 bg-gray-700 border border-gray-600 text-white rounded-xl shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">-- Please select a file --</option>
+                    </select>
+                </div>
+                <button id="share-file-btn" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-green-700 transition duration-300 transform hover:scale-105">
+                    Share File
+                </button>
+            </div>
+            <div class="file-list p-4 bg-gray-700 border border-gray-600 rounded-xl mt-6">
+                <div class="title text-xl font-bold mb-4 text-blue-300">Shared Files:</div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="sender.js"></script>
+</body>
+</html>

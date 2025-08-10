@@ -1,0 +1,9 @@
+/* public/style.css */
+/* Custom CSS for screen visibility toggle */
+.screen.active {
+    display: block;
+}
+
+.screen.hidden {
+    display: none;
+}

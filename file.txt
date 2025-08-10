@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sender - Secure File Share</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+    <div class="app w-full max-w-md p-8 bg-gray-800 shadow-xl rounded-2xl">
+        <div class="screen join-screen active text-center">
+            <div class="mb-6">
+                <h2 class="text-3xl font-extrabold text-blue-400 mb-2">Secure File Share</h2>
+                <p class="text-gray-400">Create a room and share the ID to begin.</p>
+            </div>
+            <div class="form">
+                <div class="form-input mb-4">
+                    <button id="sender-start-con-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-blue-700 transition duration-300 transform hover:scale-105">
+                        Create Room
+                    </button>
+                </div>
+                <div class="form-input" id="join-id">
+                    </div>
+            </div>
+        </div>
+        <div class="screen fs-screen hidden">
+            <div id="drop-zone" class="relative border-2 border-dashed border-gray-600 rounded-xl p-8 mb-6 text-center transition-colors duration-300 hover:border-blue-400">
+                <p class="text-gray-400">Drag & Drop files here or <span class="text-blue-400 font-bold">click to browse</span></p>
+                <input type="file" id="file-input" name="files" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" multiple>
+            </div>
+            
+            <div class="share-controls">
+                <div class="mb-4">
+                    <label for="file-dropdown" class="block text-sm font-medium text-gray-400 mb-2">Choose a file to share:</label>
+                    <select id="file-dropdown" class="mt-1 block w-full p-3 bg-gray-700 border border-gray-600 text-white rounded-xl shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">-- Please select a file --</option>
+                    </select>
+                </div>
+                <button id="share-file-btn" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-green-700 transition duration-300 transform hover:scale-105">
+                    Share File
+                </button>
+            </div>
+            <div class="file-list p-4 bg-gray-700 border border-gray-600 rounded-xl mt-6">
+                <div class="title text-xl font-bold mb-4 text-blue-300">Shared Files:</div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="sender.js"></script>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receiver - Secure File Share</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+    <div class="app w-full max-w-md p-8 bg-gray-800 shadow-xl rounded-2xl">
+        <div class="screen join-screen active text-center">
+            <div class="mb-6">
+                <h2 class="text-3xl font-extrabold text-blue-400 mb-2">Join a Room</h2>
+                <p class="text-gray-400">Enter the room ID to connect and receive files.</p>
+            </div>
+            <div class="form">
+                <div class="form-input mb-4">
+                    <label for="join-id" class="block text-left text-sm font-medium text-gray-400">Room ID</label>
+                    <input type="text" id="join-id" class="mt-1 block w-full p-3 bg-gray-700 border border-gray-600 text-white rounded-xl shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-input">
+                    <button id="receiver-start-con-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-blue-700 transition duration-300 transform hover:scale-105">
+                        Connect
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="screen fs-screen hidden">
+            <div class="file-list p-4 bg-gray-700 border border-gray-600 rounded-xl">
+                <div class="title text-xl font-bold mb-4 text-blue-300">Shared Files:</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="fs-modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden transition-opacity duration-300 opacity-0">
+        <div class="modal-content bg-gray-800 p-8 rounded-2xl shadow-xl text-center max-w-sm w-full transform scale-95 transition-transform duration-300">
+            <h3 class="text-xl font-bold text-white mb-4">File Transfer Request</h3>
+            <p id="filename-request" class="text-gray-300 mb-6"></p>
+            <div class="flex justify-center space-x-4">
+                <button id="accept-btn" class="bg-green-600 text-white font-bold py-3 px-6 rounded-xl hover:bg-green-700 transition duration-300 transform hover:scale-105">
+                    Accept
+                </button>
+                <button id="deny-btn" class="bg-red-600 text-white font-bold py-3 px-6 rounded-xl hover:bg-red-700 transition duration-300 transform hover:scale-105">
+                    Deny
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="receiver.js"></script>
+</body>
+</html>
+
+const express = require('express');
+const app = express();
+const port = 3000;
+const server = require('http').Server(app);
+const io = require('socket.io')(server);
+const path = require('path');
+
+app.use(express.static(path.join(__dirname, "/public")));
+
+io.on("connection", (socket) => {
+    socket.on("sender-join", function (data) {
+        socket.join(data.uid);
+    });
+
+    socket.on("receiver-join", function (data) {
+        socket.join(data.uid);
+        console.log("Receiver joined room: " + data.uid);
+        socket.in(data.sender_uid).emit("init", data.uid);
+    });
+
+    socket.on("fs-meta", function (data) {
+        console.log("File metadata received for room: " + data.uid);
+        socket.in(data.uid).emit("fs-meta", data.metadata);
+    });
+
+    socket.on("fs-start-request", function (data) {
+        console.log("File transfer request received for room: " + data.uid);
+        socket.in(data.uid).emit("fs-start-request", data.metadata);
+    });
+
+    socket.on("fs-start-response", function (data) {
+        console.log("File transfer response received from receiver for room: " + data.uid);
+        socket.in(data.uid).emit("fs-start-response", data.accepted);
+    });
+
+    socket.on("file-raw", function (data) {
+        socket.in(data.uid).emit("fs-share", data.buffer);
+    });
+    
+    console.log("Client connected");
+});
+
+server.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+});
+
+
+(function () {
+    let receiverId;
+    const socket = io();
+    let files = [];
+
+    function generateID() {
+        return `${Math.trunc(Math.random() * 9999)}-${Math.trunc(Math.random() * 9999)}-${Math.trunc(Math.random() * 9999)}`;
+    }
+
+    document.querySelector("#sender-start-con-btn").addEventListener("click", function () {
+        let joinId = generateID();
+        document.querySelector("#join-id").innerHTML = `
+            <div class="mt-4 p-4 bg-gray-700 border border-yellow-500 rounded-xl text-yellow-300">
+                <b>Room ID:</b> 
+                <span class="font-mono text-xl block mt-2 select-all">${joinId}</span>
+            </div>`;
+        socket.emit("sender-join", { uid: joinId });
+    });
+
+    socket.on("init", function (data) {
+        receiverId = data;
+        document.querySelector(".join-screen").classList.remove("active");
+        document.querySelector(".join-screen").classList.add("hidden");
+        document.querySelector(".fs-screen").classList.remove("hidden");
+        document.querySelector(".fs-screen").classList.add("active");
+    });
+
+    const fileInput = document.querySelector("#file-input");
+    const fileDropdown = document.querySelector("#file-dropdown");
+    const dropZone = document.querySelector("#drop-zone");
+
+    function handleFiles(selectedFiles) {
+        files = Array.from(selectedFiles);
+        fileDropdown.innerHTML = '<option value="">-- Please select a file --</option>';
+        files.forEach((file, index) => {
+            const option = document.createElement("option");
+            option.value = index;
+            option.textContent = file.name;
+            fileDropdown.appendChild(option);
+        });
+    }
+
+    dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = "#60a5fa";
+    });
+
+    dropZone.addEventListener("dragleave", (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = "#4b5563";
+    });
+
+    dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = "#4b5563";
+        handleFiles(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener("change", function (e) {
+        handleFiles(e.target.files);
+    });
+
+    let fileShare = {};
+
+    document.querySelector("#share-file-btn").addEventListener("click", function () {
+        const selectedIndex = fileDropdown.value;
+        if (selectedIndex === "") {
+            alert("Please select a file to share.");
+            return;
+        }
+        
+        let file = files[selectedIndex];
+        let reader = new FileReader();
+        
+        // This is the key fix. The transfer request is now inside the onload function.
+        reader.onload = function (e) {
+            let buffer = new Uint8Array(reader.result);
+            let el = document.createElement("div");
+            el.classList.add("item", "flex", "justify-between", "items-center", "p-4", "bg-gray-600", "rounded-xl", "mb-4");
+            el.innerHTML = `
+            <div class="filename text-gray-200">${file.name}</div>
+            <div class="progress font-bold text-lg text-yellow-400">Waiting for receiver...</div>`;
+            document.querySelector(".file-list").appendChild(el);
+
+            fileShare.buffer = buffer;
+            fileShare.metadata = {
+                filename: file.name,
+                total_buffer_size: buffer.length,
+                buffer_size: 1024
+            };
+            fileShare.progress_node = el.querySelector(".progress");
+
+            socket.emit("fs-start-request", {
+                uid: receiverId,
+                metadata: fileShare.metadata
+            });
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    socket.on("fs-start-response", function(accepted) {
+        debugger
+        if (!fileShare.progress_node) return;
+
+        if (accepted) {
+            fileShare.progress_node.innerText = "0%";
+            fileShare.progress_node.classList.remove("text-yellow-400");
+            fileShare.progress_node.classList.add("text-blue-400");
+            sendNextChunk();
+        } else {
+            fileShare.progress_node.innerText = "Denied";
+            fileShare.progress_node.classList.remove("text-yellow-400");
+            fileShare.progress_node.classList.add("text-red-500");
+            console.log("File transfer denied.");
+            fileShare = {};
+        }
+    });
+
+    socket.on("fs-share", function () {
+        if (fileShare.buffer && fileShare.buffer.length > 0) {
+            sendNextChunk();
+        }
+    });
+
+    function sendNextChunk() {
+        if (!fileShare.progress_node || !fileShare.buffer || !fileShare.metadata || isNaN(fileShare.metadata.total_buffer_size)) return;
+
+        let chunk = fileShare.buffer.slice(0, fileShare.metadata.buffer_size);
+        fileShare.buffer = fileShare.buffer.slice(fileShare.metadata.buffer_size, fileShare.buffer.length);
+        debugger
+        let progress = Math.trunc(((fileShare.metadata.total_buffer_size - fileShare.buffer.length) / fileShare.metadata.total_buffer_size) * 100);
+        fileShare.progress_node.innerText = `${progress}%`;
+
+        if (chunk.length !== 0) {
+            socket.emit("file-raw", {
+                uid: receiverId,
+                buffer: chunk
+            });
+        } else {
+            console.log("File transfer complete.");
+            fileShare.progress_node.innerText = "Complete";
+            fileShare.progress_node.classList.remove("text-blue-400");
+            fileShare.progress_node.classList.add("text-green-400");
+            fileShare = {};
+        }
+    }
+})();
+
+
+(function () {
+    let senderId;
+    const socket = io();
+
+    function generateID() {
+        return `${Math.trunc(Math.random() * 9999)}-${Math.trunc(Math.random() * 9999)}-${Math.trunc(Math.random() * 9999)}`;
+    }
+    
+    const modal = document.querySelector(".fs-modal");
+    const filenameRequest = document.getElementById("filename-request");
+    const acceptBtn = document.getElementById("accept-btn");
+    const denyBtn = document.getElementById("deny-btn");
+    const fileListContainer = document.querySelector(".file-list");
+
+    document.querySelector("#receiver-start-con-btn").addEventListener("click", function () {
+        senderId = document.querySelector("#join-id").value;
+        if(senderId.length == 0)
+            return;
+        let joinId = generateID();
+        
+        socket.emit("receiver-join", { uid: joinId, sender_uid: senderId });
+        document.querySelector(".join-screen").classList.remove("active");
+        document.querySelector(".join-screen").classList.add("hidden");
+        document.querySelector(".fs-screen").classList.remove("hidden");
+        document.querySelector(".fs-screen").classList.add("active");
+    }); 
+
+    let fileShare = {};
+    
+    socket.on("fs-start-request", function(metadata){
+        filenameRequest.textContent = `The sender wants to send you a file named "${metadata.filename}". Do you accept?`;
+        modal.classList.remove("hidden");
+        modal.classList.add("active");
+        modal.classList.add("opacity-100");
+
+        let handleAccept = function() {
+            socket.emit("fs-start-response", { uid: senderId, accepted: true });
+            modal.classList.remove("active");
+            modal.classList.add("hidden");
+            modal.classList.remove("opacity-100");
+            acceptBtn.removeEventListener("click", handleAccept);
+            denyBtn.removeEventListener("click", handleDeny);
+
+            fileShare.metadata = metadata;
+            fileShare.transmitted = 0;
+            fileShare.buffer = [];
+            let el = document.createElement("div");
+            el.classList.add("item", "flex", "justify-between", "items-center", "p-4", "bg-gray-600", "rounded-xl", "mb-4");
+            el.innerHTML = `
+                <div class="filename text-gray-200">${metadata.filename}</div>
+                <div class="progress font-bold text-lg text-blue-400">0%</div>`;
+            fileListContainer.appendChild(el);
+            fileShare.progress_node = el.querySelector(".progress");
+            socket.emit("fs-start", { uid: senderId });
+        };
+
+        let handleDeny = function() {
+            socket.emit("fs-start-response", { uid: senderId, accepted: false });
+            modal.classList.remove("active");
+            modal.classList.add("hidden");
+            modal.classList.remove("opacity-100");
+            acceptBtn.removeEventListener("click", handleAccept);
+            denyBtn.removeEventListener("click", handleDeny);
+            console.log("File transfer denied by receiver.");
+        };
+
+        acceptBtn.addEventListener("click", handleAccept);
+        denyBtn.addEventListener("click", handleDeny);
+    });
+
+    socket.on("fs-share", function(buffer){
+        if (!fileShare.metadata || !fileShare.progress_node) {
+            return;
+        }
+
+        fileShare.buffer.push(buffer);
+        fileShare.transmitted += buffer.length;
+        fileShare.progress_node.innerText = `${Math.trunc(fileShare.transmitted / fileShare.metadata.total_buffer_size * 100)}%`;
+        
+        // FIX: Replaced the blob check with a direct check on the transmitted size
+        if (fileShare.transmitted >= fileShare.metadata.total_buffer_size){
+            download(new Blob(fileShare.buffer), fileShare.metadata.filename);
+            fileShare.progress_node.innerText = "Complete";
+            fileShare.progress_node.classList.remove("text-blue-400");
+            fileShare.progress_node.classList.add("text-green-400");
+            fileShare = {};
+        } else {
+            socket.emit("fs-start", { uid: senderId });
+        }
+    });
+    
+    function download(blob, filename) {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+})();
